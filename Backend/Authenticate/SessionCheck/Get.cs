@@ -1,8 +1,7 @@
 ﻿using Backend.Common;
-using Backend.Contract.UserInfo;
 using System.Security.Claims;
 
-namespace Backend.UserInfo;
+namespace Backend.Authenticate.SessionCheck;
 
 class Get : IEndpoint
 {
@@ -10,10 +9,7 @@ class Get : IEndpoint
     {
         app.MapGet("", (ClaimsPrincipal user) =>
         {
-            var rspns = new GetResponse(
-            user.FindFirstValue(ClaimTypes.Email) ?? "",
-            user.FindFirstValue(ClaimTypes.Name) ?? "");
-
+            var rspns = user.ToSessionCheckResponse();
             return TypedResults.Ok(rspns);
         });
     }

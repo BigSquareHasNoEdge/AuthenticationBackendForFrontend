@@ -1,10 +1,26 @@
 using Backend.Authenticate;
-using Backend.UserInfo;
+using Backend.Common;
+using Backend.GrantCallbacks;
 using Backend.Weather;
 using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Configuration.AddJsonFile("authenticates.json");
+var providers = builder.Configuration.GetRequiredSection("OpenIdProviders").Get<OpenIdProvider[]>()
+    ?? throw new InvalidOperationException("OpenIdProviders were not configured");
+builder.Services.AddSingleton<AuthorizationCodeFlowHelper>(sp => new (providers));
+
+
+builder.Services.AddHttpClient();
+
+builder.Services.AddDataProtection();
+builder.Services
+    .AddTransient<StateProtector>();
+
+var clientHost = builder.Configuration.GetRequiredSection("ClientHost").Value
+    ?? throw new InvalidOperationException("ClientHost was not configured");
 
 builder.Services
     .AddDistributedMemoryCache()
@@ -16,17 +32,18 @@ builder.Services
     })
     .AddCors(options =>
         options.AddDefaultPolicy(policy =>
-            policy.WithOrigins("https://localhost:7004")
+            policy.WithOrigins(clientHost)
                 .AllowCredentials()
                 .AllowAnyHeader()
-                .AllowAnyMethod()))
-    ;
+                .AllowAnyMethod()));
 
 builder.Services
     .AddHttpContextAccessor()
-    .AddTransient<SessionService>()
+    .AddTransient<SessionService>();
+
+builder.Services
     .AddAuthentication()
-    .AddScheme<AuthenticationSchemeOptions, SessionCookieSchemeHandler>("Session", null);
+    .AddScheme<AuthenticationSchemeOptions, SessionCookieSchemeHandler>("SessionCookie", null);
 
 builder.Services.AddAuthorization();
 
@@ -47,6 +64,9 @@ var api = app.MapGroup("")
     .RequireAuthorization();
 
 api.MapWeathers();
-api.MapUserInfos();
+api.MapAuths();
+
+var helper = app.Services.GetRequiredService<AuthorizationCodeFlowHelper>();
+api.MapGrantCallbacks(helper.Providers());
 
 app.Run();

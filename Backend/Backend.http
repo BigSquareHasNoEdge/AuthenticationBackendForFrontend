@@ -1,13 +1,20 @@
-@Backend_HostAddress = https://localhost:7276
+@Backend_HostAddress = https://localhost:5004
 
 GET {{Backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
 
-GET {{Backend_HostAddress}}/userinfos
-
+GET {{Backend_HostAddress}}/authenticate/authpaths
 
 ###
 
-GET {{Backend_HostAddress}}/openapi/internal.json
+GET {{Backend_HostAddress}}/authenticate/logout
+
+###
+
+GET {{Backend_HostAddress}}/authenticate/login/google?returnurl=https://localhost:7004/reqeusts/123425235
+
+###
+
+GET https://localhost:5004/authenticate/login/google?returnurl=https://localhost:7004/reqeusts/123425235

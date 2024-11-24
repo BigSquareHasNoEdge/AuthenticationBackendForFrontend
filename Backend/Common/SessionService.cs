@@ -1,10 +1,13 @@
-﻿using System.Text.Json;
+﻿using Backend.Authenticate;
+using Microsoft.AspNetCore.Session;
+using System.Net;
+using System.Text.Json;
 
-namespace Backend.Authenticate;
+namespace Backend.Common;
 
 class SessionService(IHttpContextAccessor accessor)
 {
-    public const string SESSION_KEY = "userinfo";
+    const string SESSION_KEY = "userinfo";
 
     public UserInfo? GetUserInfo()
     {
@@ -15,5 +18,11 @@ class SessionService(IHttpContextAccessor accessor)
             return null;
 
         return userInfo;
+    }
+
+    public void SetSession(UserInfo userInfo)
+    {
+        var json = JsonSerializer.Serialize(userInfo);
+        accessor.HttpContext?.Session.SetString(SESSION_KEY, json);
     }
 }
