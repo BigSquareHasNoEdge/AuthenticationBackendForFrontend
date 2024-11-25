@@ -1,11 +1,14 @@
 ﻿namespace Backend.Common;
 
-record OpenIdProvider(string Name, string ClientId, string ClientSecret, string AuthUri, string TokenUri, string RedirectUri)
+record OpenIdProvider(
+    string Name,
+    string AuthzEndpoint,
+    string RedirectRoute,
+    string TokenEndpoint)
 {
-    public string GrantLocation(string responseType, string scope) =>
-        $"{AuthUri}?response_type={responseType}&scope={scope}&redirect_uri={RedirectUri}&client_id={ClientId}";
-    public string RedirectRoute() => new Uri(RedirectUri).PathAndQuery;
+    public string GetTokenEndpoint(string authzCode) => TokenEndpoint + $"&code={authzCode}";
 
-    public string TokenEndPoint(string authzCode) => $"{TokenUri}?&grant_type=authorization_code&code={authzCode}" +
-        $"&redirect_uri={RedirectUri}&client_id={ClientId}&client_secret={ClientSecret}";
+    public string AuthzRequestEndpoint(string? state) =>
+        state is null ? AuthzEndpoint : AuthzEndpoint + $"&state={state}";
+
 }

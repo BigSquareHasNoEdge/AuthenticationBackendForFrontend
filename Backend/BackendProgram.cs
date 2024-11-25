@@ -8,10 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Configuration.AddJsonFile("authenticates.json");
+
 var providers = builder.Configuration.GetRequiredSection("OpenIdProviders").Get<OpenIdProvider[]>()
     ?? throw new InvalidOperationException("OpenIdProviders were not configured");
-builder.Services.AddSingleton<AuthorizationCodeFlowHelper>(sp => new (providers));
 
+builder.Services.AddSingleton<OpenIdProvider[]>(providers);
 
 builder.Services.AddHttpClient();
 
@@ -66,7 +67,6 @@ var api = app.MapGroup("")
 api.MapWeathers();
 api.MapAuths();
 
-var helper = app.Services.GetRequiredService<AuthorizationCodeFlowHelper>();
-api.MapGrantCallbacks(helper.Providers());
+api.MapGrantCallbacks(providers);
 
 app.Run();

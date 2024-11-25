@@ -12,7 +12,7 @@ static class Mappings
     {
         foreach (var provider in providers)
         {
-            app.MapGet(provider.RedirectRoute(), async (
+            app.MapGet(provider.RedirectRoute, async (
                 [FromQuery] string? state,
                 [FromQuery(Name = "code")] string authzCode,
                 StateProtector protector,
@@ -26,7 +26,7 @@ static class Mappings
                    JsonSerializer.Deserialize<GrantRequestState>(json) is GrantRequestState requestState &&
                    requestState.Provider.Equals(provider.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var tokenEndpoint = provider.TokenEndPoint(authzCode);
+                    var tokenEndpoint = provider.GetTokenEndpoint(authzCode);
 
                     var tokenEndpointResponse = await httpClientFactory.CreateClient().PostAsync(tokenEndpoint, null);
                     var idTokenResponse = await tokenEndpointResponse.Content.ReadFromJsonAsync<TokenEndpointResponse>();

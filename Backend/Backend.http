@@ -5,16 +5,16 @@ Accept: application/json
 
 ###
 
-GET {{Backend_HostAddress}}/authenticate/authpaths
+GET {{Backend_HostAddress}}/auth/authinfo
 
 ###
 
-GET {{Backend_HostAddress}}/authenticate/logout
+GET {{Backend_HostAddress}}/auth/logout
 
 ###
 
-GET {{Backend_HostAddress}}/authenticate/login/google?returnurl=https://localhost:7004/reqeusts/123425235
+GET {{Backend_HostAddress}}/auth/login/google?returnurl=https://localhost:7004/reqeusts/123425235
 
 ###
 
-GET https://localhost:5004/authenticate/login/google?returnurl=https://localhost:7004/reqeusts/123425235
+GET https://localhost:5004/auth/login/google?returnurl=https://localhost:7004/reqeusts/123425235

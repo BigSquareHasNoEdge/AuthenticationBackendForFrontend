@@ -9,5 +9,6 @@ static class Mappings
         var group = app.MapGroup("/weatherforecast");
 
         group.Has<Get>();
+        group.Has<GetByDay>();
     }
 }

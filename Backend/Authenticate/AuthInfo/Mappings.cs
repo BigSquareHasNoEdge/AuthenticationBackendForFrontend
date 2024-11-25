@@ -6,7 +6,7 @@ static class Mappings
 {
     public static void MapRoutes(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/routes")
+        var group = app.MapGroup("/authinfo")
             .AllowAnonymous()
             ;
 
