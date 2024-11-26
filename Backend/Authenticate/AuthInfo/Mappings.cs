@@ -1,4 +1,5 @@
-﻿using Backend.Common;
+﻿using Backend.Authenticate.AuthInfo;
+using Backend.Common;
 
 namespace Backend.Authenticate.Routes;
 

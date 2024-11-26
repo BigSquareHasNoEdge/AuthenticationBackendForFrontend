@@ -1,5 +1,4 @@
 ﻿using Backend.Contract.Authenticate.SessionCheck;
-using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
 namespace Backend.Common;

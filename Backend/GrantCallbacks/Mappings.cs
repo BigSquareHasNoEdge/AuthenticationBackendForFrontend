@@ -1,7 +1,6 @@
 ﻿using Backend.Authenticate;
 using Backend.Common;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.JsonWebTokens;
 using System.Text.Json;
 
 namespace Backend.GrantCallbacks;
@@ -10,52 +9,43 @@ static class Mappings
 {
     public static void MapGrantCallbacks(this IEndpointRouteBuilder app, IEnumerable<OpenIdProvider> providers)
     {
+        var group = app.MapGroup("")
+            .AllowAnonymous();
+
         foreach (var provider in providers)
         {
-            app.MapGet(provider.RedirectRoute, async (
+            group.MapGet(provider.RedirectRoute, async (
                 [FromQuery] string? state,
                 [FromQuery(Name = "code")] string authzCode,
                 StateProtector protector,
-                SessionService session,
+                HttpContext context,
                 IConfiguration config,
-                IHttpClientFactory httpClientFactory) =>
+                IHttpClientFactory httpClientFactory,
+                OAuthIdTokenHandler idTokenHandler) =>
             {
-                var location = config.GetRequiredSection("ClientHost").Value;
+                var redirectLocation = config.GetRequiredSection("ClientHost").Value;
 
                 if (state != null && protector.Unprotect(state) is string json &&
                    JsonSerializer.Deserialize<GrantRequestState>(json) is GrantRequestState requestState &&
                    requestState.Provider.Equals(provider.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
                     var tokenEndpoint = provider.GetTokenEndpoint(authzCode);
-
                     var tokenEndpointResponse = await httpClientFactory.CreateClient().PostAsync(tokenEndpoint, null);
                     var idTokenResponse = await tokenEndpointResponse.Content.ReadFromJsonAsync<TokenEndpointResponse>();
 
-                    #region Set Session
-                    var idToken = idTokenResponse?.Id_Token;
-
-                    var jwt = new JsonWebToken(idToken);
-
-                    // Extract UserInfo from claims
-                    var userInfo = new UserInfo
-                    (
-                        jwt.TryGetClaim("email", out var claim) ? claim.Value : "",
-                        jwt.TryGetClaim("name", out claim) ? claim.Value : ""
-                    );
+                    var idToken = idTokenResponse?.Id_Token ?? "";
+                    var userInfo = idTokenHandler.GetUserInfo(idToken, provider.Name);
 
                     if (userInfo.IsValid())
                     {
-                        session.SetSession(userInfo);
+                        context.SetSession(userInfo);
                         if (requestState.ReturnUrl is not null)
-                            location = requestState.ReturnUrl;
+                            redirectLocation = requestState.ReturnUrl;
                     }
-                    #endregion
                 }
 
-                return TypedResults.Redirect(location!);
-            })
-            .AllowAnonymous()
-           ;
+                return TypedResults.Redirect(redirectLocation!);
+            });
         }
     }
 }

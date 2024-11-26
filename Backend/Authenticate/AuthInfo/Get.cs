@@ -1,7 +1,7 @@
 ﻿using Backend.Common;
 using Backend.Contract.Authenticate.Routes;
 
-namespace Backend.Authenticate.Routes;
+namespace Backend.Authenticate.AuthInfo;
 
 class Get : IEndpoint
 {

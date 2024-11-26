@@ -7,44 +7,49 @@ using Microsoft.AspNetCore.Authentication;
 var builder = WebApplication.CreateBuilder(args);
 
 
+#region ConfigurationCheck
 builder.Configuration.AddJsonFile("authenticates.json");
-
 var providers = builder.Configuration.GetRequiredSection("OpenIdProviders").Get<OpenIdProvider[]>()
     ?? throw new InvalidOperationException("OpenIdProviders were not configured");
 
-builder.Services.AddSingleton<OpenIdProvider[]>(providers);
+var clientHost = builder.Configuration.GetRequiredSection("ClientHost").Value
+    ?? throw new InvalidOperationException("ClientHost was not configured");
+#endregion
+
+// register OpenIdProvider[]
+builder.Services.AddSingleton(providers);
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddDataProtection();
-builder.Services
-    .AddTransient<StateProtector>();
+# region Register services for session cookie authendtication
+builder.Services.AddTransient<StateProtector>()
+    .AddDataProtection();
 
-var clientHost = builder.Configuration.GetRequiredSection("ClientHost").Value
-    ?? throw new InvalidOperationException("ClientHost was not configured");
-
-builder.Services
-    .AddDistributedMemoryCache()
+builder.Services.AddDistributedMemoryCache()
     .AddSession(options =>
     {
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
-    })
-    .AddCors(options =>
-        options.AddDefaultPolicy(policy =>
-            policy.WithOrigins(clientHost)
-                .AllowCredentials()
-                .AllowAnyHeader()
-                .AllowAnyMethod()));
-
-builder.Services
-    .AddHttpContextAccessor()
-    .AddTransient<SessionService>();
+    });
 
 builder.Services
     .AddAuthentication()
     .AddScheme<AuthenticationSchemeOptions, SessionCookieSchemeHandler>("SessionCookie", null);
+
+builder.Services
+    .AddHttpContextAccessor();
+
+#endregion
+
+builder.Services.AddScoped<OAuthIdTokenHandler>();
+
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy =>
+        policy.WithOrigins(clientHost)
+            .AllowCredentials()
+            .AllowAnyHeader()
+            .AllowAnyMethod()));
 
 builder.Services.AddAuthorization();
 

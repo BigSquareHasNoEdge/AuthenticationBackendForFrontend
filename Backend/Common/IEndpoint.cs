@@ -1,6 +1,4 @@
 ﻿namespace Backend.Common;
-
-
 interface IEndpoint
 {
     /// <summary>
