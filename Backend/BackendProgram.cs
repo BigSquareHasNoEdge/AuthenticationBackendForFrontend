@@ -1,52 +1,61 @@
+using Backend;
 using Backend.Authenticate;
 using Backend.Common;
-using Backend.GrantCallbacks;
-using Backend.Weather;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 #region ConfigurationCheck
 builder.Configuration.AddJsonFile("authenticates.json");
+
 var providers = builder.Configuration.GetRequiredSection("OpenIdProviders").Get<OpenIdProvider[]>()
     ?? throw new InvalidOperationException("OpenIdProviders were not configured");
 
-var clientHost = builder.Configuration.GetRequiredSection("ClientHost").Value
+foreach (var provider in providers)
+{
+    var key = provider.Name.ToLower();
+
+    builder.Services.AddKeyedSingleton(key, provider);
+}
+
+builder.Services.AddSingleton(sp => providers);
+var clientHost = builder.Configuration.GetRequiredSection("ClientHost").Get<ClientHost>()
     ?? throw new InvalidOperationException("ClientHost was not configured");
+
+builder.Services.AddSingleton(clientHost);
+
 #endregion
 
-// register OpenIdProvider[]
-builder.Services.AddSingleton(providers);
 
 builder.Services.AddHttpClient();
 
-# region Register services for session cookie authendtication
 builder.Services.AddTransient<StateProtector>()
     .AddDataProtection();
 
-builder.Services.AddDistributedMemoryCache()
-    .AddSession(options =>
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
     {
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-    });
-
-builder.Services
-    .AddAuthentication()
-    .AddScheme<AuthenticationSchemeOptions, SessionCookieSchemeHandler>("SessionCookie", null);
-
-builder.Services
-    .AddHttpContextAccessor();
-
-#endregion
+        o.Cookie.HttpOnly = true;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+        o.SlidingExpiration = true;
+        o.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+        o.ForwardChallenge = "BasicScheme";
+        o.Validate();
+    })
+    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicScheme", o =>
+    {
+        o.ForwardAuthenticate = CookieAuthenticationDefaults.AuthenticationScheme;
+    })
+    ;
 
 builder.Services.AddScoped<OAuthIdTokenHandler>();
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(clientHost)
+        policy.WithOrigins(clientHost.Host)
             .AllowCredentials()
             .AllowAnyHeader()
             .AllowAnyMethod()));
@@ -61,17 +70,9 @@ app.UseRouting();
 
 app.UseCors();
 
-app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-var api = app.MapGroup("")
-    .RequireAuthorization();
-
-api.MapWeathers();
-api.MapAuths();
-
-api.MapGrantCallbacks(providers);
+app.AddAppEndpoints();
 
 app.Run();

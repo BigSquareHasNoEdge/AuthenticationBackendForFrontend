@@ -3,7 +3,6 @@
 record OpenIdProvider(
     string Name,
     string AuthzEndpoint,
-    string RedirectRoute,
     string TokenEndpoint)
 {
     public string GetTokenEndpoint(string authzCode) => TokenEndpoint + $"&code={authzCode}";
