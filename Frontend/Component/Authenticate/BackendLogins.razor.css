@@ -1,0 +1,18 @@
+﻿.btn-google {
+    color: #fff;
+    background-color: #0F9D58;
+    border-color: #0F9D58;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    border-radius: 5px;
+}
+
+.btn-colour-1:hover,
+.btn-colour-1:active,
+.btn-colour-1:focus,
+.btn-colour-1.active {
+    /* let's darken #004E64 a bit for hover effect */
+    background: #0c874a;
+    color: #ffffff;
+    border-color: #0c874a;
+}

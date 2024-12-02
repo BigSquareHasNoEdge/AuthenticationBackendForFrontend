@@ -1,0 +1,21 @@
+﻿@using Frontend.Authenticate
+@inject NavigationManager Nav
+@inject HttpClient BackendClient
+@inject BackendInfo BackendInfo
+
+<AuthorizeView>
+    <Authorized>
+        @context.User.Identity?.Name
+        <button @onclick="BeginLogout">Logout</button>
+    </Authorized>
+    <NotAuthorized>
+        <button @onclick="() => Nav.NavigateTo(Logins.Path())">Login</button>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    async Task BeginLogout()
+    {
+        _ = await BackendClient.GetAsync(BackendInfo.Logout);
+    }
+}

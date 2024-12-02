@@ -15,7 +15,7 @@ class GetByDay : IEndpoint
             "Hot", "Sweltering", "Scorching"
         ];
 
-        app.MapGet("/{day}", Results<BadRequest, Ok<GetResponse>> (int day) =>
+        app.MapGet("/{day}", Results<BadRequest, Ok<GetByDayResponse>> (int day) =>
         {
             if (day is < 0 or > 5) return TypedResults.BadRequest();
             var forecast = new WeatherForecast
@@ -25,7 +25,7 @@ class GetByDay : IEndpoint
                 summary[Random.Shared.Next(summary.Length)]
             );
 
-            return TypedResults.Ok(new GetResponse([ forecast ]));
+            return TypedResults.Ok(new GetByDayResponse(forecast));
         });
     }
 }

@@ -17,4 +17,9 @@ GET {{Backend_HostAddress}}/auth/login/google?returnurl=https://localhost:7004/r
 
 ###
 
-GET https://localhost:5004/auth/login/google?returnurl=https://localhost:7004/reqeusts/123425235
+GET https://localhost:5004/auth/login/google
+Content-Type: application/json
+
+{
+  "returnurl" : "1234"
+}

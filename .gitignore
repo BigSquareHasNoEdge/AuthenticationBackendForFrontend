@@ -361,6 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/Frontend/Notes.md
-/Backend/BackendNotes.md
-/Frontend/FrontendNotes.md
+

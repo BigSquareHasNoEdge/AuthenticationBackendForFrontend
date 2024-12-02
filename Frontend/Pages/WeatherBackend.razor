@@ -1,0 +1,48 @@
+﻿<PageTitle>Weather Backend</PageTitle>
+
+<h1>Weather from Backend</h1>
+
+<p>demonstrates the unprotected component fetching data from the protected back-end api.</p>
+<p>
+    This app(front-end) doesn't protect this component so you can reach here any time. <br/>
+    However, the back-end protects the resource so unauthorized access to it will be responsed 401. 
+</p>
+<p>
+    In addition, this component doesn't protect any of its child contents, either.<br />
+    Once your have logged in, you will see data, which, however, will remain even after you click Logout button.<br />
+    It is because there is no way to be informed on AuthenticationState change so this component has no chance to rerender.<br />
+    Navigating out and in again will rerender properly.
+</p>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (forecasts.Length == 0)
+{
+    <p><em>No data!</em> Maybe you can get it after <NavLink href="@Logins.Path()">loggin in</NavLink>.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th aria-label="Temperature in Celsius">Temp. (C)</th>
+                <th aria-label="Temperature in Farenheit">Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

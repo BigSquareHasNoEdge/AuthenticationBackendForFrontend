@@ -1,0 +1,25 @@
+﻿@using Frontend.Component
+@using Frontend.Component.Authenticate
+@inject NavigationManager Nav
+@inject HttpClient BackendProxy
+
+<!-- Indivitual Account login goes here -->
+
+<AuthorizeView>
+    <Authorized>
+        <GoToHome/>
+    </Authorized>
+    <NotAuthorized>
+        @if (BackendAInfo.Providers.Length != 0)
+        {
+            <BackendLogins OpenIdProviderNames="@BackendAInfo.Providers"
+                           ReturnUrl="@(ReturnUrlBag?.Get() ?? Nav.BaseUri)"
+                           BackendLoginPath="@BackendAInfo.Login" />
+        }
+        else
+        {
+            <p>Social login process under maintanance</p>
+        }
+    </NotAuthorized>
+</AuthorizeView>
+

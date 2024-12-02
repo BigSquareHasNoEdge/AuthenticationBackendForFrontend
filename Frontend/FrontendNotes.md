@@ -1,15 +1,18 @@
-# 클라이언트 단 인증
+# 클라이언트 구현 시 주의 사항.
 
 ## 블레이저 와즘의 HttpClient 특성.
 
 1. Redirect 를 처리할 수 없음.  
-리다이렉트는 브라우저가 처리함.  
-HttpClient가 백엔드에 로그인 요청(Post)을 보내면, 그 응답은 HttpClient 가 아니라, 브라우저가 처리하기 때문에, 굳이 앵커 태그를 쓰지 않아도 됨.
-[정정]
-브라우저는 클라이언트가 리다이렉트를 처리하지 못하도록 막을 뿐 직접 처리하지 않는다.
+HttpClient가 보낸 요청에 대한 응답으로 Redirect 를 받은 경우,  
+브라우저는 이를 처리하지도 않고, 클라이언트에게 전달하지도 않음.  
 
-## Http Redirect
+## 브라우저의 form 핸들링.
 
-Post 요청을 Redirect 하면, Post 가 됨. 
+form 태그의 action 속성의 기본값은 "get"
+
+- 기본값   
+input 태그 값들을 UrlEncode 하여 query 로 변환
 
 
+- "post"  
+Content type 을 MultiPart 로 설정 후 바디에 삽입.

@@ -1,6 +1,7 @@
 ﻿using Backend.Authenticate;
 using Backend.Common;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -10,39 +11,36 @@ public class Google : IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/google", async (
-                [FromQuery] string? state,
-                [FromQuery(Name = "code")] string authzCode,
-                StateProtector protector,
-                HttpContext context,
-                ClientHost clientHost,
-                IHttpClientFactory httpClientFactory,
-                OAuthIdTokenHandler idTokenHandler,
-                [FromKeyedServices("google")] OpenIdProvider provider) =>
-        {            
-
-            if (state != null && protector.Unprotect(state) is string json &&
-               JsonSerializer.Deserialize<GrantRequestState>(json) is GrantRequestState requestState &&
-               requestState.Provider.Equals(provider.Name, StringComparison.InvariantCultureIgnoreCase))
+        app.MapGet("/google", async Task<Results<BadRequest, RedirectHttpResult>> (
+            HttpContext context,
+            [FromQuery] string? state,
+            [FromQuery] string code,
+            [FromServices] StateProtector protector,
+            [FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] OAuthIdTokenHandler idTokenHandler,
+            [FromKeyedServices("google")] OpenIdProvider provider) =>
+        {
+            if (state is not null
+                && protector.Unprotect(state) is string json
+                && JsonSerializer.Deserialize<LoginRequestState>(json) is LoginRequestState requestState
+                && requestState.ReturnUrl is not null
+                && requestState.Provider.Equals(provider.Name, StringComparison.InvariantCultureIgnoreCase))
             {
-                var redirectLocation = requestState.ReturnUrl ?? clientHost.Host;
-                var tokenEndpoint = provider.GetTokenEndpoint(authzCode);
+                var tokenEndpoint = provider.GetTokenEndpoint(code);
+
                 var tokenEndpointResponse = await httpClientFactory.CreateClient().PostAsync(tokenEndpoint, null);
                 var idTokenResponse = await tokenEndpointResponse.Content.ReadFromJsonAsync<TokenEndpointResponse>();
 
-                var idToken = idTokenResponse?.Id_Token ?? "";
-
-                var principal = idTokenHandler.GetPrincipal(idToken, provider.Name);
+                var principal = idTokenHandler.GetPrincipal(idTokenResponse?.Id_Token, provider.Name);
 
                 if (principal.Identity?.IsAuthenticated == true)
                 {
                     await context.SignInAsync(principal);
-                    return TypedResults.Redirect(redirectLocation);
+                    return TypedResults.Redirect(requestState.ReturnUrl);
                 }
             }
-
-            return TypedResults.Redirect(clientHost.Host);
-        })
+            return TypedResults.BadRequest();
+        }).DisableAntiforgery();
         ;
     }
 }

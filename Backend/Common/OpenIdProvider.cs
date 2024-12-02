@@ -9,5 +9,4 @@ record OpenIdProvider(
 
     public string AuthzRequestEndpoint(string? state) =>
         state is null ? AuthzEndpoint : AuthzEndpoint + $"&state={state}";
-
 }

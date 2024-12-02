@@ -11,15 +11,15 @@ class Get : IEndpoint
     {
         app.MapGet("/{provider}", Results<BadRequest, RedirectHttpResult> (
             string provider,
-            [FromQuery] string? returnUrl,
-            OpenIdProvider[] providers,
-            StateProtector protector) =>
+            [FromQuery] string returnUrl,
+            [FromServices]OpenIdProvider[] providers,
+            [FromServices]StateProtector protector) =>
         {
             var idp = providers.FirstOrDefault(x => provider.Equals(x.Name, StringComparison.InvariantCultureIgnoreCase));
 
             if (idp is null) return TypedResults.BadRequest();
 
-            var state = new GrantRequestState(provider, returnUrl);
+            var state = new LoginRequestState(provider, returnUrl);
             var stateJson = JsonSerializer.Serialize(state);
             var protectedState = protector.Protect(stateJson);
 

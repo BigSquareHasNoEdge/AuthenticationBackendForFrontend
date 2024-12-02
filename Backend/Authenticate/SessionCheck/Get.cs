@@ -1,4 +1,5 @@
 ﻿using Backend.Common;
+using Backend.Contract.Authenticate.SessionCheck;
 using System.Security.Claims;
 
 namespace Backend.Authenticate.SessionCheck;
@@ -9,8 +10,8 @@ class Get : IEndpoint
     {
         app.MapGet("", (ClaimsPrincipal user) =>
         {
-            var rspns = user.ToSessionCheckResponse();
-            return TypedResults.Ok(rspns);
+            var si = SessionInfo.From(user);
+            return TypedResults.Ok(si);
         });
     }
 }
