@@ -5,15 +5,15 @@ This solution is purposed to implement BFF(Backend For Frontend) pattern, which 
 
 ## System Layout  
 
-The solution will end up with two application projects:
+The solution will end up with two application projects and one class library.
 
 1. Backend  
 Asp.Net Core Minimal Api app. 
 
 1. Backed.Contract  
-A class library containing data models promised by Backend.
+A class library containing data transfer models promised by Backend.
 
-3. Frontend  
+1. Frontend  
 Blazor Webassembly Standalone app.
 
 Each of Apps will be hosted at different servers(domains).   
@@ -21,22 +21,30 @@ Each of Apps will be hosted at different servers(domains).
 
 ## Backend App
 
-Backed project has a configuration file named "Authenticates.json" for key values for authorization code flow like below:
+### Configuration for OpenId Provider's Credentials
+
+
+Backend project has a configuration file named "authenticates.json" for end points necessary for authorization code flow like below:
 
 ```json
 {
   "OpenIdProviders": [
     {
       "Name": "Google",
-      "AuthzEndpoint": "https://accounts.google.com/o/oauth2/auth?response_type=code&scope=openid email profile&redirect_uri=https://localhost:5004/grant-callback/google&client_id={Your Client ID Here}",
-      "TokenEndpoint": "https://oauth2.googleapis.com/token?grant_type=authorization_code&redirect_uri=https://localhost:5004/grant-callback/google&client_id={Your Client Id Here}&client_secret={Your Client Secret Here}"
+      "AuthzEndpoint": "https://accounts.google.com/o/oauth2/auth?response_type=code&scope=openid email profile&redirect_uri={Your return url here}&client_id={Your Client ID Here}",
+      "TokenEndpoint": "https://oauth2.googleapis.com/token?grant_type=authorization_code&redirect_uri={Your return url here}&client_id={Your Client Id Here}&client_secret={Your Client Secret Here}"
     }
   ]
 }
 ```
 
-As you can see, the end points were hard-coded based on credentials received from Google OAuth Api.
+As you can see, the end points of authorization server were hard-coded based on credentials received from Google OAuth Api.
+
+You can make your own one by replacing placeholders, marked `{Your ... here}` in the above code block, with your ones.
 Later, you can add more sections for other open id providers.
+
+FYI, Google Api will give you a json file containing all relevant credentials, once you finished with OAUTH settings.
+Downloading it into your local developing machine is strongly recommended for future reuse.
 
 The configuration will be deserialized into this model:
 
@@ -52,8 +60,8 @@ record OpenIdProvider(string Name, string AuthzEndpoint, string TokenEndpoint)
 }
 ```
 
-By the way, this repository doesn't include the file for my private security reason.  
-As `BackendProgram.cs` will throws unless the file exists, you are required to add your own one before running the app.
+By the way, this repository ignores the file from my machine for my private security reason.  
+As `BackendProgram.cs` will throw unless the file exists, 
 
 ```csharp
 // ...
@@ -66,27 +74,59 @@ var providers = builder.Configuration.GetRequiredSection("OpenIdProviders").Get<
 // ...
 ```
 
+***you are required to add your own one before running the app.***
 
-The Backend address of "https://localhost:5004" is configured by `./Properties/launchsettings.json`, while Frontend one is by the section of `ClientHost` in `./appsettings.json`.  
+In the Backend project, addresses of sub systems are configured as "https://localhost:5004" at `./Properties/launchsettings.json` and Frontend one is as "https://localhost:7004" at the section of `ClientHost` in `./appsettings.json`.  
 
-```
-{
-  ...
-  "ClientHost" : "https://localhost:7004"
-}
-```
+You are free to change them but be sure to make values sync with the contents of `authenticates.json`.
 
-You are free to change them but be sure to make values sync with the OpenIdProviders section.
+
+### Implementation details
+
+#### Responses
+
+Backend app's *CORS Middleware* reponses 404 against any request from other than the client host, which is `https://localhost:7004` in this solution.  
+
+Otherwise,
+
+- 400: when validation fails at each endpoint, especially, in `/callback/{provider}`.
+- 302: only when aquisiting authorization code step.
+- 200: for GET request whether or not it has the resouce.
+- 401: *Authorization middleware* responses against unauthenticated, therefore unauthorized, access.    
+The middleware relies on CookieAuthenticationScheme, which is configured, by default, to response 302 to backend's `/Account/Login`.  
+This behavior was tweaked by forwarding its `Challenge` action to `BasicScheme`, which response 401.
+
+
+#### Protections to malicious request
+
+Once a user authenticated, the browser is redirected to front-end app's origin, where Blazor Webassembly app is downloaded and executed from the scratch.
+Any request from other than the front-end origin is rejected.
+
+There is no anti-forgery token to protect form submission at this stage for the simplicity.
+When any vulnerability is found in the future, it will be added.
 
 
 ## Frontend app
 
-Frontend app has two weather pages, one is fetching the data from its host(Origin) server.
-It is the same with that of the project template.
+### Implementation details
 
-However, the other is doing from the back-end.
+#### Protection at client side.
 
-I have set up the origin weather to protected by `<AuthorizeView>` but not the backend weather.
-Please refer to some comments on each pages for why I did that.
+Frontend app has two weather pages, one(`WeatherOrigin`) is fetching the data from its Origin server, which is `https:localhost:7004` in the solution.  
+It is the same with that of the .net project template.
+This component is protected by `[Authorize]` at component level.
 
-Any comments or advices are welcome.
+The other one(`WeatherBackend`) is doing from the Backend and not protected at component level nor at its children levels.
+
+You can find some some comments at each page, for the effect of the protection.
+
+
+#### Delegating handlers
+
+Frontend app havily relies on `DelegatingHandler`s for the communication wth Backend.
+
+#### Cascading Value
+
+In order to conceal data shared between routable components, A.K.A. pages, I used Cascading system of blazor.
+With that, the `Logins` page receive returnUrl value to send Backend from cascaded `ReturnUrlBag`.
+This helps maintain simple route format without query parameters.
